@@ -1,170 +1,248 @@
-import * as React from "react";
-import Avatar from "@mui/material/Avatar";
-import Button from "@mui/material/Button";
-import CssBaseline from "@mui/material/CssBaseline";
-import TextField from "@mui/material/TextField";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Checkbox from "@mui/material/Checkbox";
-import Link from "@mui/material/Link";
-import Paper from "@mui/material/Paper";
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import Typography from "@mui/material/Typography";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import React, { useState, useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Snackbar } from "@mui/material";
 
-// TODO remove, this demo shouldn't need to reset the theme.
-
-const defaultTheme = createTheme();
-
 export default function Authentication() {
-  const [username, setUsername] = React.useState();
-  const [password, setPassword] = React.useState();
-  const [name, setName] = React.useState();
-  const [error, setError] = React.useState();
-  const [message, setMessage] = React.useState();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [formState, setFormState] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [formState, setFormState] = React.useState(0);
+  const navigate = useNavigate();
+  const { handleRegister, handleLogin } = useContext(AuthContext);
 
-  const [open, setOpen] = React.useState(false);
-
-  const { handleRegister, handleLogin } = React.useContext(AuthContext);
-
-  let handleAuth = async () => {
+  const handleAuth = async () => {
     try {
+      setIsLoading(true);
+      setError("");
+
       if (formState === 0) {
-        let result = await handleLogin(username, password);
+        await handleLogin(username, password);
       }
       if (formState === 1) {
         let result = await handleRegister(name, username, password);
-        console.log(result);
-        setUsername("");
         setMessage(result);
         setOpen(true);
-        setError("");
         setFormState(0);
         setPassword("");
+        setName("");
       }
     } catch (err) {
       console.log(err);
-      let message = err.response.data.message;
-      setError(message);
+      let errorMessage = err.response?.data?.message || "An error occurred";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleAuth();
     }
   };
 
   return (
-    <ThemeProvider theme={defaultTheme}>
-      <Grid container component="main" sx={{ height: "100vh" }}>
-        <CssBaseline />
-        <Grid
-          item
-          xs={false}
-          sm={4}
-          md={7}
-          sx={{
+    <div className="min-h-screen flex">
+      {/* Left Panel - Image */}
+      <div className="hidden lg:block lg:w-1/2 bg-blue-600 relative">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
             backgroundImage:
-              "url(https://source.unsplash.com/random?wallpapers)",
-            backgroundRepeat: "no-repeat",
-            backgroundColor: (t) =>
-              t.palette.mode === "light"
-                ? t.palette.grey[50]
-                : t.palette.grey[900],
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+              "url('https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')",
           }}
-        />
-        <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
-          <Box
-            sx={{
-              my: 8,
-              mx: 4,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
-              <LockOutlinedIcon />
-            </Avatar>
+        ></div>
+        <div className="absolute inset-0 bg-blue-900 bg-opacity-50"></div>
+        <div className="relative h-full flex items-center justify-center p-12">
+          <div className="text-white max-w-md">
+            <h1 className="text-4xl font-bold mb-6">ConferaX</h1>
+            <p className="text-xl mb-8">
+              Connect with anyone, anywhere. Simple video calls made easy.
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <div className="w-6 h-6 bg-green-400 rounded-full mr-3"></div>
+                <span>HD video quality</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-6 h-6 bg-green-400 rounded-full mr-3"></div>
+                <span>Secure & private</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-6 h-6 bg-green-400 rounded-full mr-3"></div>
+                <span>No downloads required</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8">
+        <div className="w-full max-w-md">
+          {/* Logo for mobile */}
+          <div className="lg:hidden mb-8 text-center">
+            <h1 className="text-3xl font-bold text-blue-600">ConferaX</h1>
+            <p className="text-gray-600 mt-2">Simple video conferencing</p>
+          </div>
+
+          {/* Form Toggle */}
+          <div className="flex border-b mb-8">
+            <button
+              onClick={() => setFormState(0)}
+              className={`flex-1 py-3 font-medium text-center ${
+                formState === 0
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setFormState(1)}
+              className={`flex-1 py-3 font-medium text-center ${
+                formState === 1
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-6">
+            {formState === 1 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  placeholder="Enter your name"
+                />
+              </div>
+            )}
 
             <div>
-              <Button
-                variant={formState === 0 ? "contained" : ""}
-                onClick={() => {
-                  setFormState(0);
-                }}
-              >
-                Sign In
-              </Button>
-              <Button
-                variant={formState === 1 ? "contained" : ""}
-                onClick={() => {
-                  setFormState(1);
-                }}
-              >
-                Sign Up
-              </Button>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Enter your email"
+              />
             </div>
 
-            <Box component="form" noValidate sx={{ mt: 1 }}>
-              {formState === 1 ? (
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  id="username"
-                  label="Full Name"
-                  name="username"
-                  value={name}
-                  autoFocus
-                  onChange={(e) => setName(e.target.value)}
-                />
-              ) : (
-                <></>
-              )}
-
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="username"
-                label="Username"
-                name="username"
-                value={username}
-                autoFocus
-                onChange={(e) => setUsername(e.target.value)}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                value={password}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
                 type="password"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                id="password"
+                onKeyPress={handleKeyPress}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Enter your password"
               />
+            </div>
 
-              <p style={{ color: "red" }}>{error}</p>
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
 
-              <Button
-                type="button"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-                onClick={handleAuth}
+            {/* Remember Me (Login only) */}
+            {formState === 0 && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">
+                    Remember me
+                  </span>
+                </label>
+                <button className="text-sm text-blue-600 hover:text-blue-800">
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              onClick={handleAuth}
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Loading...
+                </div>
+              ) : formState === 0 ? (
+                "Sign In"
+              ) : (
+                "Create Account"
+              )}
+            </button>
+
+            {/* Guest Access */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <p className="text-center text-gray-600 mb-4">
+                Want to try without registering?
+              </p>
+              <button
+                onClick={() => navigate("/aljk23")}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 rounded-lg transition-colors"
               >
-                {formState === 0 ? "Login " : "Register"}
-              </Button>
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
+                Join as Guest
+              </button>
+            </div>
 
-      <Snackbar open={open} autoHideDuration={4000} message={message} />
-    </ThemeProvider>
+            {/* Toggle Form Text */}
+            <div className="text-center">
+              <p className="text-gray-600">
+                {formState === 0
+                  ? "Don't have an account?"
+                  : "Already have an account?"}{" "}
+                <button
+                  onClick={() => setFormState(formState === 0 ? 1 : 0)}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {formState === 0 ? "Sign up" : "Sign in"}
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={open}
+        autoHideDuration={4000}
+        onClose={() => setOpen(false)}
+        message={message}
+      />
+    </div>
   );
 }

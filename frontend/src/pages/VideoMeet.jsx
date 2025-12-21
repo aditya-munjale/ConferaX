@@ -497,120 +497,263 @@ export default function VideoMeetComponent() {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-900">
       {askForUsername === true ? (
-        <div>
-          <h2>Enter into Lobby </h2>
-          <TextField
-            id="outlined-basic"
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            variant="outlined"
-          />
-          <Button variant="contained" onClick={connect}>
-            Connect
-          </Button>
+        /* Lobby Screen */
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-900 text-white">
+          <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-xl">
+            <h2 className="text-2xl font-bold mb-6 text-center">
+              Join the Meeting
+            </h2>
 
-          <div>
-            <video ref={localVideoref} autoPlay muted></video>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Enter Your Name
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-white"
+                  placeholder="Your name"
+                />
+              </div>
+
+              <button
+                onClick={connect}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors"
+              >
+                Join Meeting
+              </button>
+            </div>
+
+            <div className="mt-8">
+              <p className="text-gray-400 text-sm mb-4">Your preview:</p>
+              <video
+                ref={localVideoref}
+                autoPlay
+                muted
+                className="w-full rounded-lg bg-gray-900"
+              ></video>
+            </div>
           </div>
         </div>
       ) : (
-        <div className={styles.meetVideoContainer}>
-          {showModal ? (
-            <div className={styles.chatRoom}>
-              <div className={styles.chatContainer}>
-                <h1>Chat</h1>
+        /* Main Meeting Screen */
+        <div className="h-screen flex flex-col bg-gray-900">
+          {/* Chat Modal */}
+          {showModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+              <div className="bg-gray-800 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+                {/* Chat Header with Close Button */}
+                <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-white">Chat</h2>
+                  <button
+                    onClick={() => setModal(false)}
+                    className="text-gray-400 hover:text-white p-1"
+                    aria-label="Close chat"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
 
-                <div className={styles.chattingDisplay}>
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-y-auto p-4">
                   {messages.length !== 0 ? (
-                    messages.map((item, index) => {
-                      console.log(messages);
-                      return (
-                        <div style={{ marginBottom: "20px" }} key={index}>
-                          <p style={{ fontWeight: "bold" }}>{item.sender}</p>
-                          <p>{item.data}</p>
-                        </div>
-                      );
-                    })
+                    messages.map((item, index) => (
+                      <div key={index} className="mb-4">
+                        <p className="font-bold text-blue-400">{item.sender}</p>
+                        <p className="text-white">{item.data}</p>
+                      </div>
+                    ))
                   ) : (
-                    <p>No Messages Yet</p>
+                    <p className="text-gray-400 text-center py-4">
+                      No messages yet
+                    </p>
                   )}
                 </div>
 
-                <div className={styles.chattingArea}>
-                  <TextField
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    id="outlined-basic"
-                    label="Enter Your chat"
-                    variant="outlined"
-                  />
-                  <Button variant="contained" onClick={sendMessage}>
-                    Send
-                  </Button>
+                {/* Chat Input */}
+                <div className="p-4 border-t border-gray-700">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-white"
+                      placeholder="Type your message..."
+                      onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                    />
+                    <button
+                      onClick={sendMessage}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Send
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          ) : (
-            <></>
           )}
 
-          <div className={styles.buttonContainers}>
-            <IconButton onClick={handleVideo} style={{ color: "white" }}>
-              {video === true ? <VideocamIcon /> : <VideocamOffIcon />}
-            </IconButton>
-            <IconButton onClick={handleEndCall} style={{ color: "red" }}>
-              <CallEndIcon />
-            </IconButton>
-            <IconButton onClick={handleAudio} style={{ color: "white" }}>
-              {audio === true ? <MicIcon /> : <MicOffIcon />}
-            </IconButton>
-
-            {screenAvailable === true ? (
-              <IconButton onClick={handleScreen} style={{ color: "white" }}>
-                {screen === true ? (
-                  <ScreenShareIcon />
-                ) : (
-                  <StopScreenShareIcon />
-                )}
-              </IconButton>
-            ) : (
-              <></>
-            )}
-
-            <Badge badgeContent={newMessages} max={999} color="orange">
-              <IconButton
-                onClick={() => setModal(!showModal)}
-                style={{ color: "white" }}
+          {/* Control Bar */}
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
+            <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-2xl p-3 shadow-xl flex items-center space-x-3">
+              {/* Video Toggle */}
+              <button
+                onClick={handleVideo}
+                className={`p-3 rounded-full ${
+                  video
+                    ? "bg-gray-700 hover:bg-gray-600"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
               >
-                <ChatIcon />{" "}
-              </IconButton>
-            </Badge>
+                {video ? (
+                  <VideocamIcon className="text-white" />
+                ) : (
+                  <VideocamOffIcon className="text-white" />
+                )}
+              </button>
+
+              {/* Audio Toggle */}
+              <button
+                onClick={handleAudio}
+                className={`p-3 rounded-full ${
+                  audio
+                    ? "bg-gray-700 hover:bg-gray-600"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {audio ? (
+                  <MicIcon className="text-white" />
+                ) : (
+                  <MicOffIcon className="text-white" />
+                )}
+              </button>
+
+              {/* End Call */}
+              <button
+                onClick={handleEndCall}
+                className="p-3 bg-red-600 hover:bg-red-700 rounded-full"
+              >
+                <CallEndIcon className="text-white" />
+              </button>
+
+              {/* Screen Share */}
+              {screenAvailable && (
+                <button
+                  onClick={handleScreen}
+                  className={`p-3 rounded-full ${
+                    screen
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-gray-700 hover:bg-gray-600"
+                  }`}
+                >
+                  {screen ? (
+                    <ScreenShareIcon className="text-white" />
+                  ) : (
+                    <StopScreenShareIcon className="text-white" />
+                  )}
+                </button>
+              )}
+
+              {/* Chat Button */}
+              <button
+                onClick={() => setModal(!showModal)}
+                className={`p-3 rounded-full relative ${
+                  showModal
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-gray-700 hover:bg-gray-600"
+                }`}
+              >
+                <ChatIcon className="text-white" />
+                {newMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {newMessages > 99 ? "99+" : newMessages}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
-          <video
-            className={styles.meetUserVideo}
-            ref={localVideoref}
-            autoPlay
-            muted
-          ></video>
+          {/* Video Grid */}
+          <div className="flex-1 p-4">
+            {/* Local Video (PiP) */}
+            <div className="absolute top-4 right-4 z-30">
+              <video
+                ref={localVideoref}
+                autoPlay
+                muted
+                className="w-40 h-32 rounded-lg bg-gray-900 object-cover shadow-xl"
+              ></video>
+            </div>
 
-          <div className={styles.conferenceView}>
-            {videos.map((video) => (
-              <div key={video.socketId}>
-                <video
-                  data-socket={video.socketId}
-                  ref={(ref) => {
-                    if (ref && video.stream) {
-                      ref.srcObject = video.stream;
-                    }
-                  }}
-                  autoPlay
-                ></video>
+            {/* Remote Videos Grid */}
+            <div className="h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videos.map((video) => (
+                <div
+                  key={video.socketId}
+                  className="relative bg-gray-800 rounded-xl overflow-hidden"
+                >
+                  <video
+                    data-socket={video.socketId}
+                    ref={(ref) => {
+                      if (ref && video.stream) {
+                        ref.srcObject = video.stream;
+                      }
+                    }}
+                    autoPlay
+                    className="w-full h-full object-cover"
+                  ></video>
+                  <div className="absolute bottom-3 left-3 bg-black bg-opacity-50 text-white px-3 py-1 rounded-lg text-sm">
+                    {video.username || "Participant"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Status Bar */}
+          <div className="fixed top-4 left-4 z-30">
+            <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl px-4 py-2 text-white text-sm">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <div
+                    className={`w-2 h-2 rounded-full mr-2 ${
+                      video ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  ></div>
+                  <span>Video {video ? "On" : "Off"}</span>
+                </div>
+                <div className="flex items-center">
+                  <div
+                    className={`w-2 h-2 rounded-full mr-2 ${
+                      audio ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  ></div>
+                  <span>Audio {audio ? "On" : "Off"}</span>
+                </div>
+                <div className="text-gray-400">
+                  {videos.length + 1} participant
+                  {videos.length + 1 !== 1 ? "s" : ""}
+                </div>
+                {showModal && <div className="text-blue-400">Chat open</div>}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
