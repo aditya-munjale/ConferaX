@@ -205,19 +205,6 @@ export default function Authentication() {
               )}
             </button>
 
-            {/* Guest Access */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <p className="text-center text-gray-600 mb-4">
-                Want to try without registering?
-              </p>
-              <button
-                onClick={() => navigate("/aljk23")}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 rounded-lg transition-colors"
-              >
-                Join as Guest
-              </button>
-            </div>
-
             {/* Toggle Form Text */}
             <div className="text-center">
               <p className="text-gray-600">
