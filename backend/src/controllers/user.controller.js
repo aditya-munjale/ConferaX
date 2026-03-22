@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
 import { User } from "../models/user.model.js";
-import bcrypt, { hash } from "bcrypt";
-
-import crypto from "crypto";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { Meeting } from "../models/meeting.model.js";
+
 const login = async (req, res) => {
   const { username, password } = req.body;
 
@@ -22,10 +22,14 @@ const login = async (req, res) => {
     let isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (isPasswordCorrect) {
-      let token = crypto.randomBytes(20).toString("hex");
+      // Create the JWT containing the user's data
+      const token = jwt.sign(
+        { username: user.username, name: user.name },
+        process.env.JWT_SECRET || "your_super_secret_key",
+        { expiresIn: "24h" }, // Token expires in 1 day
+      );
 
-      user.token = token;
-      await user.save();
+      // We send the token back to the frontend (NO saving to DB needed!)
       return res.status(httpStatus.OK).json({ token: token });
     } else {
       return res
@@ -39,6 +43,25 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   const { name, username, password } = req.body;
+
+  // --- 1. BACKEND SECURITY VALIDATION ---
+  if (!name || name.trim().length < 2) {
+    return res
+      .status(400)
+      .json({ message: "Name must be at least 2 characters" });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!username || !emailRegex.test(username)) {
+    return res.status(400).json({ message: "Invalid email format" });
+  }
+
+  if (!password || password.length < 6) {
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 6 characters" });
+  }
+  // --------------------------------------
 
   try {
     const existingUser = await User.findOne({ username });
@@ -60,16 +83,14 @@ const register = async (req, res) => {
 
     res.status(httpStatus.CREATED).json({ message: "User Registered" });
   } catch (e) {
-    res.json({ message: `Something went wrong ${e}` });
+    res.status(500).json({ message: `Something went wrong ${e}` });
   }
 };
 
 const getUserHistory = async (req, res) => {
-  const { token } = req.query;
-
   try {
-    const user = await User.findOne({ token: token });
-    const meetings = await Meeting.find({ user_id: user.username });
+    // req.user.username comes automatically from our JWT middleware!
+    const meetings = await Meeting.find({ user_id: req.user.username });
     res.json(meetings);
   } catch (e) {
     res.json({ message: `Something went wrong ${e}` });
@@ -77,13 +98,11 @@ const getUserHistory = async (req, res) => {
 };
 
 const addToHistory = async (req, res) => {
-  const { token, meeting_code } = req.body;
+  const { meeting_code } = req.body;
 
   try {
-    const user = await User.findOne({ token: token });
-
     const newMeeting = new Meeting({
-      user_id: user.username,
+      user_id: req.user.username, // Comes from JWT middleware
       meetingCode: meeting_code,
     });
 
@@ -95,4 +114,33 @@ const addToHistory = async (req, res) => {
   }
 };
 
-export { login, register, getUserHistory, addToHistory };
+const removeFromHistory = async (req, res) => {
+  try {
+    const { meetingCode } = req.params;
+
+    // req.user._id comes from your auth middleware!
+    const userId = req.user._id;
+
+    // Find the user and yank the specific meeting out of their history array
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        $pull: { meetingHistory: { meetingCode: meetingCode } },
+      },
+      { new: true }, // This returns the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Meeting removed from history successfully!" });
+  } catch (error) {
+    console.error("Error removing from history:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export { login, register, getUserHistory, addToHistory, removeFromHistory };

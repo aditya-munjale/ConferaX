@@ -1,18 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import Card from "@mui/material/Card";
-import Box from "@mui/material/Box";
-import CardActions from "@mui/material/CardActions";
-import CardContent from "@mui/material/CardContent";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
 import HomeIcon from "@mui/icons-material/Home";
 import HistoryIcon from "@mui/icons-material/History";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import { IconButton } from "@mui/material";
 
 export default function History() {
   const { getHistoryOfUser } = useContext(AuthContext);
@@ -25,7 +18,17 @@ export default function History() {
       try {
         setLoading(true);
         const history = await getHistoryOfUser();
-        setMeetings(history);
+
+        // --- AUTO DELETE LOGIC: Keep only meetings from the last 14 days ---
+        const now = new Date();
+        const recentMeetings = history.filter((meeting) => {
+          const meetingDate = new Date(meeting.date);
+          const diffInTime = now.getTime() - meetingDate.getTime();
+          const diffInDays = diffInTime / (1000 * 3600 * 24);
+          return diffInDays <= 14; // Drops anything older than 2 weeks!
+        });
+
+        setMeetings(recentMeetings);
       } catch (error) {
         console.error("Error fetching history:", error);
       } finally {
@@ -54,9 +57,9 @@ export default function History() {
 
     if (diffInHours < 1) {
       const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-      return `${diffInMinutes} minutes ago`;
+      return `${diffInMinutes} mins ago`;
     } else if (diffInHours < 24) {
-      return `${diffInHours} hours ago`;
+      return `${diffInHours} hrs ago`;
     } else {
       const diffInDays = Math.floor(diffInHours / 24);
       return `${diffInDays} days ago`;
@@ -68,244 +71,196 @@ export default function History() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-10">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 sm:mb-12 gap-4">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-6">
+          <div className="flex items-center space-x-5">
             <button
               onClick={() => routeTo("/home")}
-              className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-md hover:shadow-lg hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 group"
+              className="flex items-center justify-center w-12 h-12 bg-white rounded-2xl shadow-sm hover:shadow-md hover:bg-purple-50 transition-all duration-300 border border-gray-100 group text-gray-500 hover:text-purple-600"
             >
-              <HomeIcon className="text-gray-700 group-hover:text-blue-600" />
+              <HomeIcon />
             </button>
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 flex items-center">
-                <HistoryIcon className="mr-3 text-blue-600" />
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
+                <HistoryIcon
+                  className="mr-3 text-purple-600"
+                  fontSize="large"
+                />
                 Meeting History
               </h1>
-              <p className="text-gray-600 mt-1 text-sm sm:text-base">
-                View and join your recent video conferences
+              <p className="text-gray-500 mt-1 font-medium">
+                Recent sessions (Auto-deletes after 14 days)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <div className="hidden sm:flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl">
-              <span className="font-bold mr-2">{meetings.length}</span>
-              <span>Meetings</span>
+          <div className="flex items-center space-x-4">
+            <div className="hidden sm:flex items-center px-5 py-2.5 bg-purple-100 text-purple-700 rounded-xl font-medium">
+              <span className="font-bold mr-2 text-lg">{meetings.length}</span>
+              Sessions
             </div>
             <button
               onClick={() => routeTo("/home")}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center"
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-purple-200 transition-all duration-300 flex items-center"
             >
-              <HomeIcon className="mr-2" />
+              <HomeIcon className="mr-2 sm:mr-3" fontSize="small" />
               <span className="hidden sm:inline">Back to Home</span>
               <span className="sm:hidden">Home</span>
             </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Meetings</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Total Recent
+                </p>
+                <p className="text-3xl font-black text-gray-800">
                   {meetings.length}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <HistoryIcon className="text-blue-600" />
+              <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
+                <HistoryIcon fontSize="medium" />
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-gray-200">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">This Month</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  This Month
+                </p>
+                <p className="text-3xl font-black text-gray-800">
                   {
-                    meetings.filter((meeting) => {
-                      const meetingDate = new Date(meeting.date);
-                      const now = new Date();
-                      return (
-                        meetingDate.getMonth() === now.getMonth() &&
-                        meetingDate.getFullYear() === now.getFullYear()
-                      );
-                    }).length
+                    meetings.filter(
+                      (m) =>
+                        new Date(m.date).getMonth() === new Date().getMonth(),
+                    ).length
                   }
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <CalendarTodayIcon className="text-green-600" />
+              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                <CalendarTodayIcon fontSize="medium" />
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-gray-200">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Last Meeting</p>
-                <p className="text-lg sm:text-xl font-bold text-gray-900">
-                  {meetings.length > 0
-                    ? getTimeAgo(meetings[0].date)
-                    : "No meetings"}
+                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Latest
+                </p>
+                <p className="text-xl font-bold text-gray-800 mt-2">
+                  {meetings.length > 0 ? getTimeAgo(meetings[0].date) : "N/A"}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <AccessTimeIcon className="text-purple-600" />
+              <div className="w-14 h-14 bg-fuchsia-50 rounded-2xl flex items-center justify-center text-fuchsia-600">
+                <AccessTimeIcon fontSize="medium" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Loading State */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600 text-lg">
-              Loading your meeting history...
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="animate-spin rounded-full h-14 w-14 border-4 border-gray-100 border-t-purple-600 mb-6"></div>
+            <p className="text-gray-500 font-medium text-lg">
+              Loading your history...
             </p>
           </div>
         ) : (
           <>
-            {/* Meetings Grid */}
             {meetings.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {meetings.map((meeting, index) => (
                   <div
                     key={index}
-                    className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] border border-gray-200 overflow-hidden group"
+                    className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group flex flex-col relative"
                   >
-                    <div className="p-5 sm:p-6">
-                      {/* Meeting Header */}
-                      <div className="flex items-start justify-between mb-4">
+                    <div className="p-6 flex-1">
+                      <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
-                            <MeetingRoomIcon className="text-white text-lg sm:text-xl" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-4 shadow-md shadow-purple-200">
+                            <MeetingRoomIcon
+                              className="text-white"
+                              fontSize="small"
+                            />
                           </div>
                           <div>
-                            <h3 className="font-bold text-lg sm:text-xl text-gray-900">
-                              Meeting #{index + 1}
+                            <h3 className="font-extrabold text-lg text-gray-900">
+                              Session #{meetings.length - index}
                             </h3>
-                            <p className="text-sm text-gray-500 flex items-center mt-1">
-                              <AccessTimeIcon className="mr-1 text-xs" />
+                            <p className="text-sm font-medium text-gray-500 flex items-center mt-0.5">
+                              <AccessTimeIcon
+                                className="mr-1.5"
+                                style={{ fontSize: "14px" }}
+                              />
                               {getTimeAgo(meeting.date)}
                             </p>
                           </div>
                         </div>
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                          #{index + 1}
-                        </span>
                       </div>
-
-                      {/* Meeting Details */}
-                      <div className="space-y-4">
-                        <div className="bg-gray-50 rounded-xl p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm text-gray-600 mb-1">
-                                Meeting Code
-                              </p>
-                              <p className="font-mono text-lg sm:text-xl font-bold text-gray-900">
-                                {meeting.meetingCode}
-                              </p>
-                            </div>
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <span className="text-blue-600 font-bold">#</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center text-gray-700">
-                          <CalendarTodayIcon className="text-gray-400 mr-3" />
-                          <div>
-                            <p className="text-sm text-gray-600">Date & Time</p>
-                            <p className="font-medium">
-                              {formatDate(meeting.date)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="mt-6 pt-4 border-t border-gray-100">
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <button
-                            onClick={() =>
-                              handleJoinMeeting(meeting.meetingCode)
-                            }
-                            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 hover:shadow-lg flex items-center justify-center group"
-                          >
-                            <MeetingRoomIcon className="mr-2 group-hover:scale-110 transition-transform" />
-                            Join Again
-                          </button>
-                          <button
-                            onClick={() =>
-                              navigator.clipboard.writeText(meeting.meetingCode)
-                            }
-                            className="flex-1 bg-white text-blue-600 hover:bg-blue-50 font-semibold py-3 px-4 rounded-xl border border-blue-200 transition-colors duration-300 flex items-center justify-center group"
-                          >
-                            <span className="mr-2 group-hover:scale-110 transition-transform">
-                              📋
-                            </span>
-                            Copy Code
-                          </button>
+                      <div className="bg-slate-50 rounded-2xl p-5 mb-6 border border-slate-100">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                          Access Code
+                        </p>
+                        <p className="font-mono text-xl font-bold text-purple-700 tracking-wider">
+                          {meeting.meetingCode}
+                        </p>
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                            Date & Time
+                          </p>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {formatDate(meeting.date)}
+                          </p>
                         </div>
                       </div>
                     </div>
-
-                    {/* Decorative Element */}
-                    <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="px-6 pb-6 pt-2">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleJoinMeeting(meeting.meetingCode)}
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center"
+                        >
+                          <MeetingRoomIcon className="mr-2" fontSize="small" />{" "}
+                          Rejoin
+                        </button>
+                        <button
+                          onClick={() =>
+                            navigator.clipboard.writeText(meeting.meetingCode)
+                          }
+                          className="flex-1 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
                 ))}
               </div>
             ) : (
-              /* Empty State */
-              <div className="flex flex-col items-center justify-center py-16 sm:py-24">
-                <div className="w-32 h-32 sm:w-48 sm:h-48 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
-                  <HistoryIcon className="text-gray-400 text-4xl sm:text-6xl" />
+              <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-gray-100 border-dashed">
+                <div className="w-32 h-32 bg-purple-50 rounded-full flex items-center justify-center mb-6">
+                  <HistoryIcon className="text-purple-300 text-6xl" />
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-                  No Meeting History
+                <h3 className="text-2xl font-extrabold text-gray-900 mb-3">
+                  No Recent Sessions
                 </h3>
-                <p className="text-gray-600 text-center max-w-md mb-8">
-                  You haven't joined any meetings yet. Start by creating or
-                  joining a video call.
+                <p className="text-gray-500 text-center max-w-md mb-8 font-medium">
+                  Your recent history is empty. Sessions older than 14 days are
+                  automatically removed.
                 </p>
                 <button
                   onClick={() => routeTo("/home")}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold px-8 py-4 rounded-xl shadow-lg shadow-purple-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center"
                 >
-                  <MeetingRoomIcon className="mr-3" />
-                  Start Your First Meeting
+                  <MeetingRoomIcon className="mr-3" /> Create New Meeting
                 </button>
-              </div>
-            )}
-
-            {/* Footer Info */}
-            {meetings.length > 0 && (
-              <div className="mt-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
-                <div className="flex flex-col sm:flex-row items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-1">
-                      Need help with past meetings?
-                    </h4>
-                    <p className="text-gray-600 text-sm">
-                      You can join any meeting from your history by clicking
-                      "Join Again"
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => routeTo("/home")}
-                    className="mt-4 sm:mt-0 bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-3 rounded-xl border border-blue-200 transition-colors duration-300"
-                  >
-                    Create New Meeting
-                  </button>
-                </div>
               </div>
             )}
           </>

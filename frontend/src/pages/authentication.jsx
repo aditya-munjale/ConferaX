@@ -9,17 +9,42 @@ export default function Authentication() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [formState, setFormState] = useState(0);
+  const [formState, setFormState] = useState(0); // 0 = Login, 1 = Register
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
   const { handleRegister, handleLogin } = useContext(AuthContext);
 
+  // --- FRONTEND VALIDATION ---
+  const validateForm = () => {
+    // Standard email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (formState === 1 && name.trim().length < 2) {
+      setError("Full name must be at least 2 characters long.");
+      return false;
+    }
+    if (!emailRegex.test(username)) {
+      setError("Please enter a valid email address.");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return false;
+    }
+    return true;
+  };
+
   const handleAuth = async () => {
     try {
-      setIsLoading(true);
+      // 1. Clear previous errors
       setError("");
+
+      // 2. Run validation check BEFORE hitting the server
+      if (!validateForm()) return;
+
+      setIsLoading(true);
 
       if (formState === 0) {
         await handleLogin(username, password);
@@ -28,7 +53,7 @@ export default function Authentication() {
         let result = await handleRegister(name, username, password);
         setMessage(result);
         setOpen(true);
-        setFormState(0);
+        setFormState(0); // Switch back to login view after successful registration
         setPassword("");
         setName("");
       }
@@ -48,79 +73,111 @@ export default function Authentication() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Image */}
-      <div className="hidden lg:block lg:w-1/2 bg-blue-600 relative">
+    <div className="min-h-screen flex bg-slate-50 font-sans">
+      {/* --- Left Panel (Visuals) --- */}
+      <div className="hidden lg:block lg:w-1/2 bg-purple-700 relative overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80')",
           }}
         ></div>
-        <div className="absolute inset-0 bg-blue-900 bg-opacity-50"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 to-indigo-900/95"></div>
         <div className="relative h-full flex items-center justify-center p-12">
           <div className="text-white max-w-md">
-            <h1 className="text-4xl font-bold mb-6">ConferaX</h1>
-            <p className="text-xl mb-8">
-              Connect with anyone, anywhere. Simple video calls made easy.
+            <h1 className="text-5xl font-black mb-6 tracking-tight">
+              ConferaX
+            </h1>
+            <p className="text-xl mb-10 font-medium text-purple-100 leading-relaxed">
+              Connect with anyone, anywhere. Secure video calls made beautifully
+              easy.
             </p>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="flex items-center">
-                <div className="w-6 h-6 bg-green-400 rounded-full mr-3"></div>
-                <span>HD video quality</span>
+                <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center mr-4 border border-white/20">
+                  <span className="text-xl">📹</span>
+                </div>
+                <span className="text-lg font-semibold tracking-wide">
+                  HD Video Quality
+                </span>
               </div>
               <div className="flex items-center">
-                <div className="w-6 h-6 bg-green-400 rounded-full mr-3"></div>
-                <span>Secure & private</span>
+                <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center mr-4 border border-white/20">
+                  <span className="text-xl">🔒</span>
+                </div>
+                <span className="text-lg font-semibold tracking-wide">
+                  End-to-End Encrypted
+                </span>
               </div>
               <div className="flex items-center">
-                <div className="w-6 h-6 bg-green-400 rounded-full mr-3"></div>
-                <span>No downloads required</span>
+                <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center mr-4 border border-white/20">
+                  <span className="text-xl">⚡</span>
+                </div>
+                <span className="text-lg font-semibold tracking-wide">
+                  No Downloads Required
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md">
+      {/* --- Right Panel (Form) --- */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white relative">
+        {/* Subtle decorative background blur */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
+
+        <div className="w-full max-w-md relative z-10">
           {/* Logo for mobile */}
-          <div className="lg:hidden mb-8 text-center">
-            <h1 className="text-3xl font-bold text-blue-600">ConferaX</h1>
-            <p className="text-gray-600 mt-2">Simple video conferencing</p>
+          <div className="lg:hidden mb-10 text-center">
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
+              ConferaX
+            </h1>
+            <p className="text-gray-500 mt-2 font-medium">
+              Secure video conferencing
+            </p>
           </div>
 
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 hidden lg:block">
+            {formState === 0 ? "Welcome back" : "Create an account"}
+          </h2>
+
           {/* Form Toggle */}
-          <div className="flex border-b mb-8">
+          <div className="flex mb-8 bg-gray-100/80 p-1 rounded-xl border border-gray-200">
             <button
-              onClick={() => setFormState(0)}
-              className={`flex-1 py-3 font-medium text-center ${
+              onClick={() => {
+                setFormState(0);
+                setError("");
+              }}
+              className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${
                 formState === 0
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-purple-700 shadow-sm border border-gray-200/50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
               }`}
             >
               Sign In
             </button>
             <button
-              onClick={() => setFormState(1)}
-              className={`flex-1 py-3 font-medium text-center ${
+              onClick={() => {
+                setFormState(1);
+                setError("");
+              }}
+              className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${
                 formState === 1
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-purple-700 shadow-sm border border-gray-200/50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
               }`}
             >
               Sign Up
             </button>
           </div>
 
-          {/* Form */}
-          <div className="space-y-6">
+          {/* Form Inputs */}
+          <div className="space-y-5">
             {formState === 1 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600 mb-2">
                   Full Name
                 </label>
                 <input
@@ -128,14 +185,14 @@ export default function Authentication() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="Enter your name"
+                  className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all font-medium text-gray-900"
+                  placeholder="e.g. Jane Doe"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wide text-gray-600 mb-2">
                 Email Address
               </label>
               <input
@@ -143,13 +200,13 @@ export default function Authentication() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                placeholder="Enter your email"
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all font-medium text-gray-900"
+                placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wide text-gray-600 mb-2">
                 Password
               </label>
               <input
@@ -157,31 +214,34 @@ export default function Authentication() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                placeholder="Enter your password"
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all font-medium text-gray-900"
+                placeholder="••••••••"
               />
             </div>
 
-            {/* Error Message */}
+            {/* Error Message Display */}
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600 text-sm">{error}</p>
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl animate-fade-in">
+                <div className="flex items-center">
+                  <span className="text-red-500 mr-2">⚠️</span>
+                  <p className="text-red-700 text-sm font-bold">{error}</p>
+                </div>
               </div>
             )}
 
-            {/* Remember Me (Login only) */}
+            {/* Remember Me & Forgot Password (Login only) */}
             {formState === 0 && (
-              <div className="flex items-center justify-between">
-                <label className="flex items-center">
+              <div className="flex items-center justify-between mt-2">
+                <label className="flex items-center cursor-pointer group">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                    className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500 transition-all"
                   />
-                  <span className="ml-2 text-sm text-gray-600">
+                  <span className="ml-2 text-sm text-gray-600 font-medium group-hover:text-gray-900 transition-colors">
                     Remember me
                   </span>
                 </label>
-                <button className="text-sm text-blue-600 hover:text-blue-800">
+                <button className="text-sm text-purple-600 hover:text-purple-800 font-bold transition-colors">
                   Forgot password?
                 </button>
               </div>
@@ -191,12 +251,12 @@ export default function Authentication() {
             <button
               onClick={handleAuth}
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-200 hover:shadow-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center transform hover:-translate-y-0.5"
             >
               {isLoading ? (
                 <div className="flex items-center">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Loading...
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
+                  Processing...
                 </div>
               ) : formState === 0 ? (
                 "Sign In"
@@ -205,17 +265,20 @@ export default function Authentication() {
               )}
             </button>
 
-            {/* Toggle Form Text */}
-            <div className="text-center">
-              <p className="text-gray-600">
+            {/* Bottom Toggle Text */}
+            <div className="text-center mt-8">
+              <p className="text-gray-500 text-sm font-medium">
                 {formState === 0
-                  ? "Don't have an account?"
+                  ? "New to ConferaX?"
                   : "Already have an account?"}{" "}
                 <button
-                  onClick={() => setFormState(formState === 0 ? 1 : 0)}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  onClick={() => {
+                    setFormState(formState === 0 ? 1 : 0);
+                    setError("");
+                  }}
+                  className="text-purple-600 hover:text-purple-800 font-bold transition-colors ml-1"
                 >
-                  {formState === 0 ? "Sign up" : "Sign in"}
+                  {formState === 0 ? "Sign up for free" : "Sign in here"}
                 </button>
               </p>
             </div>
@@ -223,12 +286,12 @@ export default function Authentication() {
         </div>
       </div>
 
-      {/* Snackbar */}
       <Snackbar
         open={open}
         autoHideDuration={4000}
         onClose={() => setOpen(false)}
         message={message}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
     </div>
   );

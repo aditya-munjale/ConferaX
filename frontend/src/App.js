@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import VideoMeetComponent from "./pages/VideoMeet";
 import HomeComponent from "./pages/home";
 import History from "./pages/history";
+import Library from "./pages/Library";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/:url" element={<VideoMeetComponent />} />
             <Route path="/home" s element={<HomeComponent />} />
             <Route path="/history" element={<History />} />
+            <Route path="/library" element={<Library />} />
           </Routes>
         </AuthProvider>
       </Router>
