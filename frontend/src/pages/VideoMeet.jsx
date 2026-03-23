@@ -21,15 +21,11 @@ export default function VideoMeetComponent() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
-  // --- NEW STATES FOR PHASE 3 ---
   const [meetingEnded, setMeetingEnded] = useState(false);
   const [summary, setSummary] = useState(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
 
-  const { caption, fullTranscriptRef, isListening, toggleListening } =
-    useSpeechToText();
-
-  const liveKitUrl = "wss://conferax-bnet0895.livekit.cloud"; // Your LiveKit URL
+  const liveKitUrl = "wss://conferax-bnet0895.livekit.cloud";
 
   const handleJoin = async () => {
     if (!username.trim() || !roomName.trim()) {
@@ -50,7 +46,7 @@ export default function VideoMeetComponent() {
       const data = await response.json();
       if (response.ok) {
         setToken(data.token);
-        setMeetingEnded(false); // Reset just in case
+        setMeetingEnded(false);
         setSummary(null);
       } else {
         setError(data.message || "Failed to get token");
@@ -62,22 +58,16 @@ export default function VideoMeetComponent() {
     }
   };
 
-  // --- PHASE 3: THE AI TRIGGER ---
-  const handleDisconnect = async () => {
-    // 1. Leave the video room
-    setToken("");
-    setMeetingEnded(true);
+  // --- THIS NOW ACCEPTS THE FINAL SCRIPT FROM THE CHILD COMPONENT ---
+  const triggerMeetingSummary = async (finalTranscript) => {
+    setToken(""); // Disconnect from room
+    setMeetingEnded(true); // Show dashboard
 
-    // 2. Grab the secret notepad
-    const finalTranscript = fullTranscriptRef.current;
-
-    // 3. If nobody spoke, don't bother the AI!
     if (!finalTranscript || finalTranscript.trim() === "") {
       setSummary("No conversation was recorded during this meeting.");
       return;
     }
 
-    // 4. Send the notepad to your Node.js backend
     setIsSummarizing(true);
     try {
       const response = await fetch(
@@ -88,11 +78,9 @@ export default function VideoMeetComponent() {
           body: JSON.stringify({ transcript: finalTranscript }),
         },
       );
-
       const data = await response.json();
-
       if (response.ok) {
-        setSummary(data.summary); // Save the AI's response!
+        setSummary(data.summary);
       } else {
         setSummary("Failed to generate summary: " + data.message);
       }
@@ -108,23 +96,17 @@ export default function VideoMeetComponent() {
       setSaveMessage("Please enter a title for this reading session!");
       return;
     }
-
     setIsSaving(true);
     setSaveMessage("");
-
     try {
       const response = await fetch(
         "http://localhost:8000/api/v1/library/save",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: sessionTitle,
-            content: summary, // This is the AI text we generated!
-          }),
+          body: JSON.stringify({ title: sessionTitle, content: summary }),
         },
       );
-
       if (response.ok) {
         setSaveMessage("✨ Successfully saved to the Community Library!");
       } else {
@@ -145,7 +127,6 @@ export default function VideoMeetComponent() {
           <h2 className="text-3xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">
             Meeting Summary
           </h2>
-
           <div className="bg-gray-900/50 rounded-xl p-6 min-h-[200px] border border-gray-700">
             {isSummarizing ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-4 pt-10 pb-10">
@@ -155,11 +136,9 @@ export default function VideoMeetComponent() {
                 </p>
               </div>
             ) : (
-              // whitespace-pre-wrap makes sure the AI's bullet points format correctly!
               <div className="text-gray-200 text-lg leading-relaxed">
                 <ReactMarkdown
                   components={{
-                    // This tells React how to style the Markdown tags using your Tailwind CSS!
                     strong: ({ node, ...props }) => (
                       <span className="font-bold text-purple-300" {...props} />
                     ),
@@ -187,7 +166,6 @@ export default function VideoMeetComponent() {
             )}
           </div>
 
-          {/* --- NEW PUBLISH SECTION --- */}
           {!isSummarizing && summary && (
             <div className="mt-8 bg-gray-900/50 p-6 rounded-xl border border-gray-700">
               <h3 className="text-xl font-bold mb-4 text-purple-400">
@@ -197,10 +175,9 @@ export default function VideoMeetComponent() {
                 type="text"
                 value={sessionTitle}
                 onChange={(e) => setSessionTitle(e.target.value)}
-                placeholder="e.g., Teachings of Lord Chaitanya - Prologue"
+                placeholder="e.g., Team Sync"
                 className="w-full px-5 py-3 mb-4 bg-gray-800 border border-gray-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-purple-500"
               />
-
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleSaveToLibrary}
@@ -216,7 +193,6 @@ export default function VideoMeetComponent() {
                   Return to Lobby
                 </button>
               </div>
-
               {saveMessage && (
                 <p
                   className={`mt-4 text-center font-bold ${saveMessage.includes("✨") ? "text-green-400" : "text-red-400"}`}
@@ -270,7 +246,7 @@ export default function VideoMeetComponent() {
     );
   }
 
-  // --- UI: THE LIVE VIDEO ROOM ---
+  // --- UI: THE LIVE VIDEO ROOM WRAPPER ---
   return (
     <div
       style={{
@@ -286,11 +262,40 @@ export default function VideoMeetComponent() {
         serverUrl={liveKitUrl}
         data-lk-theme="default"
         style={{ height: "100%" }}
-        onDisconnected={handleDisconnect} // <--- THIS IS THE TRIGGER!
       >
-        <VideoConference />
-        <RoomAudioRenderer />
+        {/* WE RENDER THE CHILD COMPONENT HERE, SAFELY INSIDE THE ROOM */}
+        <ActiveRoomFeatures onMeetingEnd={triggerMeetingSummary} />
       </LiveKitRoom>
+    </div>
+  );
+}
+
+// =====================================================================
+// NEW CHILD COMPONENT: This runs safely INSIDE the LiveKit network!
+// =====================================================================
+function ActiveRoomFeatures({ onMeetingEnd }) {
+  // 1. Because we are inside the room, useDataChannel inside this hook works perfectly!
+  const { caption, fullTranscriptRef, isListening, toggleListening } =
+    useSpeechToText();
+
+  // 2. Custom button logic to grab the notes BEFORE disconnecting
+  const handleCustomDisconnect = () => {
+    const finalNotes = fullTranscriptRef.current;
+    onMeetingEnd(finalNotes);
+  };
+
+  return (
+    <>
+      <VideoConference />
+      <RoomAudioRenderer />
+
+      {/* --- NEW: CUSTOM "END MEETING" BUTTON --- */}
+      <button
+        onClick={handleCustomDisconnect}
+        className="absolute top-6 right-6 z-50 bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-xl font-bold shadow-2xl transition-all border border-red-400"
+      >
+        🚪 End Meeting & Summarize
+      </button>
 
       <button
         onClick={toggleListening}
@@ -312,6 +317,6 @@ export default function VideoMeetComponent() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

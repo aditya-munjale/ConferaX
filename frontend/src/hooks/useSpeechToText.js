@@ -1,13 +1,35 @@
 import { useState, useEffect, useRef } from "react";
+// --- NEW: Import Data Channels from LiveKit ---
+import { useDataChannel } from "@livekit/components-react";
 
 export default function useSpeechToText() {
   const [caption, setCaption] = useState("");
-  const fullTranscriptRef = useRef(""); // Our permanent master notepad
+  const fullTranscriptRef = useRef(""); // Our permanent shared master notepad
   const [isListening, setIsListening] = useState(false);
 
   const recognitionRef = useRef(null);
   const clearTimerRef = useRef(null);
 
+  // =========================================================================
+  // 📥 THE RECEIVER: Catch text packets sent by other people in the room
+  // =========================================================================
+  const { send } = useDataChannel("transcript-channel", (msg) => {
+    // 1. Packets arrive as raw bytes. We decode them back into JSON.
+    const decoder = new TextDecoder();
+    const decodedString = decoder.decode(msg.payload);
+    const data = JSON.parse(decodedString);
+
+    // 2. LiveKit automatically tells us who sent it!
+    const senderName = msg.from?.identity || "Participant";
+
+    // 3. Add THEIR sentence to OUR master notepad like a movie script
+    fullTranscriptRef.current += `\n${senderName}: ${data.text}`;
+    console.log(`📥 Received from ${senderName}: ${data.text}`);
+  });
+
+  // =========================================================================
+  // 🎙️ THE LISTENER & BROADCASTER
+  // =========================================================================
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -25,8 +47,7 @@ export default function useSpeechToText() {
     recognition.lang = "en-US";
 
     recognition.onstart = () => console.log("🎙️ AI is listening...");
-
-    recognition.onerror = (event) => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
 
     recognition.onresult = (event) => {
       let interimTranscript = "";
@@ -36,37 +57,44 @@ export default function useSpeechToText() {
         const chunk = event.results[i][0].transcript;
 
         if (event.results[i].isFinal) {
-          // 1. PERMANENT MEMORY: The browser is 100% sure the sentence is done.
-          // We ADD it to our master notepad so it never gets deleted!
-          fullTranscriptRef.current += chunk + " ";
+          const finalSentence = chunk.trim() + " ";
+
+          // 1. Add it to OUR local notepad so we have a record of what we said
+          fullTranscriptRef.current += `\nMe: ${finalSentence}`;
+
+          // 2. 🚀 THE BROADCASTER: Send our words to everyone else!
+          try {
+            const payloadString = JSON.stringify({ text: finalSentence });
+            const encoder = new TextEncoder();
+            // Fire the encoded bytes across the LiveKit network
+            send(encoder.encode(payloadString), { reliable: true });
+          } catch (error) {
+            console.error("Failed to broadcast transcript:", error);
+          }
         } else {
-          // 2. SHORT-TERM MEMORY: The browser is still listening to the current sentence.
-          interimTranscript += chunk;
+          interimTranscript += chunk; // Short-term memory
         }
       }
 
-      // 3. UI UPDATE: Show the latest words on the screen
+      // UI UPDATE: Show the latest words on the screen
       const displayPhrase =
         interimTranscript ||
         event.results[event.results.length - 1][0].transcript;
       setCaption(displayPhrase);
 
-      // 4. THE SILENCE TIMER (Wipes the screen, but NOT the hidden notepad)
+      // SILENCE TIMER
       if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = setTimeout(() => {
-        setCaption("");
-      }, 3000);
+      clearTimerRef.current = setTimeout(() => setCaption(""), 3000);
     };
 
     recognition.onend = () => {
-      // If the AI takes a breath, force it to keep listening
-      setIsListening((prevListening) => {
-        if (prevListening) {
+      setIsListening((prev) => {
+        if (prev) {
           try {
             recognition.start();
           } catch (e) {}
         }
-        return prevListening;
+        return prev;
       });
     };
 
@@ -76,7 +104,7 @@ export default function useSpeechToText() {
       recognition.stop();
       if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
     };
-  }, []);
+  }, [send]);
 
   const toggleListening = () => {
     if (isListening) {
